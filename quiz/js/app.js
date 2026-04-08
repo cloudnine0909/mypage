@@ -56,55 +56,50 @@ class App {
     this.printBtn       = document.getElementById('print-btn');
     this.retryBtn       = document.getElementById('retry-btn');
     this.newQuizBtn     = document.getElementById('new-quiz-btn');
+
+    // ── Mode tabs ──
+    this.tabText        = document.getElementById('tab-text');
+    this.tabImage       = document.getElementById('tab-image');
+
+    // ── Image quiz section ──
+    this.imageQuizSection  = document.getElementById('image-quiz-section');
+    this.iqDropZone        = document.getElementById('iq-drop-zone');
+    this.iqFileInput       = document.getElementById('iq-file-input');
+    this.iqLangSelect      = document.getElementById('iq-lang-select');
+    this.iqStartBtn        = document.getElementById('iq-start-btn');
+    this.iqProcessing      = document.getElementById('iq-processing');
+    this.iqStatus          = document.getElementById('iq-status');
+    this.iqProgressFill    = document.getElementById('iq-progress-fill');
+    this.iqQuizDisplay     = document.getElementById('iq-quiz-display');
+    this.iqImageWrapper    = document.getElementById('iq-image-wrapper');
+    this.iqQProgress       = document.getElementById('iq-q-progress');
+    this.iqScoreCorrect    = document.getElementById('iq-score-correct');
+    this.iqScoreWrong      = document.getElementById('iq-score-wrong');
+    this.iqBeforeReveal    = document.getElementById('iq-before-reveal');
+    this.iqAfterReveal     = document.getElementById('iq-after-reveal');
+    this.iqRevealedText    = document.getElementById('iq-revealed-text');
+    this.iqRevealBtn       = document.getElementById('iq-reveal-btn');
+    this.iqCorrectBtn      = document.getElementById('iq-correct-btn');
+    this.iqWrongBtn        = document.getElementById('iq-wrong-btn');
+    this.iqPrevBtn         = document.getElementById('iq-prev-btn');
+    this.iqNextBtn         = document.getElementById('iq-next-btn');
+    this.iqResetBtn        = document.getElementById('iq-reset-btn');
+    this.iqNewImageBtn     = document.getElementById('iq-new-image-btn');
+
+    // Image quiz engine instance (created on first use)
+    this.imageQuiz = null;
+    this._iqFile   = null;
+    this._mode     = 'text'; // 'text' | 'image'
   }
 
   // ─── Event binding ──────────────────────────────────────────────────────────
 
   bindEvents() {
-    // ── Drop zone click → open file picker ──
-    this.dropZone.addEventListener('click', (e) => {
-      // Avoid double-firing when the hidden input itself is inside the zone
-      if (e.target !== this.fileInput) this.fileInput.click();
-    });
-
-    // Keyboard activation (accessibility)
-    this.dropZone.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        this.fileInput.click();
-      }
-    });
-
-    // ── Drag visual feedback ──
-    this.dropZone.addEventListener('dragenter', (e) => {
-      e.preventDefault();
-      this.dropZone.classList.add('drag-over');
-    });
-
-    this.dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      this.dropZone.classList.add('drag-over');
-    });
-
-    this.dropZone.addEventListener('dragleave', (e) => {
-      // Only remove when the pointer truly leaves the drop zone
-      if (!this.dropZone.contains(e.relatedTarget)) {
-        this.dropZone.classList.remove('drag-over');
-      }
-    });
-
-    this.dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      this.dropZone.classList.remove('drag-over');
-      const file = e.dataTransfer.files && e.dataTransfer.files[0];
-      if (file) this.setFile(file);
-    });
-
-    // ── File input change ──
+    // ── Text quiz drop zone ──
+    this._bindDropZone(this.dropZone, this.fileInput, (f) => this.setFile(f));
     this.fileInput.addEventListener('change', () => {
       const file = this.fileInput.files && this.fileInput.files[0];
       if (file) this.setFile(file);
-      // Reset value so the same file can be re-selected after a reset
       this.fileInput.value = '';
     });
 
@@ -139,6 +134,46 @@ class App {
     // ── New quiz: back to upload ──
     this.newQuizBtn.addEventListener('click', () => this.resetAll());
     document.addEventListener('newQuiz', () => this.resetAll());
+
+    // ── Mode tabs ──
+    this.tabText.addEventListener('click',  () => this._setMode('text'));
+    this.tabImage.addEventListener('click', () => this._setMode('image'));
+
+    // ── Image quiz: upload zone ──
+    this._bindDropZone(this.iqDropZone, this.iqFileInput, (f) => this._iqSetFile(f));
+    this.iqFileInput.addEventListener('change', () => {
+      const f = this.iqFileInput.files && this.iqFileInput.files[0];
+      if (f) this._iqSetFile(f);
+      this.iqFileInput.value = '';
+    });
+
+    this.iqStartBtn.addEventListener('click',    () => this._iqStartProcessing());
+    this.iqRevealBtn.addEventListener('click',   () => this._iqRevealCurrent());
+    this.iqCorrectBtn.addEventListener('click',  () => this._iqMarkAnswer(true));
+    this.iqWrongBtn.addEventListener('click',    () => this._iqMarkAnswer(false));
+    this.iqPrevBtn.addEventListener('click',     () => { this.imageQuiz.goPrev();  this._iqSyncUI(); });
+    this.iqNextBtn.addEventListener('click',     () => { this.imageQuiz.goNext();  this._iqSyncUI(); });
+    this.iqResetBtn.addEventListener('click',    () => { this.imageQuiz.reset();   this._iqSyncUI(); });
+    this.iqNewImageBtn.addEventListener('click', () => this._iqNewImage());
+  }
+
+  /** Helper: bind click + drag-and-drop to a drop zone element. */
+  _bindDropZone(zone, input, onFile) {
+    zone.addEventListener('click', (e) => { if (e.target !== input) input.click(); });
+    zone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); }
+    });
+    zone.addEventListener('dragenter', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragover',  (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', (e) => {
+      if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over');
+    });
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) onFile(f);
+    });
   }
 
   // ─── File handling ──────────────────────────────────────────────────────────
@@ -329,6 +364,146 @@ class App {
   hideError() {
     const el = document.getElementById('app-error');
     if (el) el.remove();
+  }
+
+  // ─── Mode switching ─────────────────────────────────────────────────────────
+
+  _setMode(mode) {
+    this._mode = mode;
+    const isText = mode === 'text';
+
+    this.tabText.classList.toggle('mode-tab--active',  isText);
+    this.tabImage.classList.toggle('mode-tab--active', !isText);
+
+    if (isText) {
+      if (this.imageQuizSection) this.imageQuizSection.hidden = true;
+      // Restore text quiz sections to their last state
+      this._showSection(this.uploadSection);
+      if (this.textPreviewSection && this.currentQuiz) this.textPreviewSection.hidden = false;
+      if (this.currentQuiz) this._showSection(this.quizSection);
+    } else {
+      // Hide all text-quiz sections
+      [this.uploadSection, this.processingSection, this.textPreviewSection, this.quizSection]
+        .forEach(s => { if (s) s.hidden = true; });
+      if (this.imageQuizSection) this.imageQuizSection.hidden = false;
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ─── Image quiz ──────────────────────────────────────────────────────────────
+
+  _iqSetFile(file) {
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일만 지원합니다 (JPG, PNG, WEBP).');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      alert('파일 크기가 너무 큽니다 (최대 50MB).');
+      return;
+    }
+    this._iqFile = file;
+    const title = this.iqDropZone.querySelector('.drop-zone-title');
+    if (title) title.textContent = `선택된 파일: ${file.name}`;
+    this.iqDropZone.classList.add('file-selected');
+    this.iqStartBtn.disabled = false;
+  }
+
+  async _iqStartProcessing() {
+    if (!this._iqFile) return;
+
+    this.iqProcessing.hidden  = false;
+    this.iqQuizDisplay.hidden = true;
+
+    if (!this.imageQuiz) this.imageQuiz = new ImageQuiz();
+    this.imageQuiz.onProgress = (pct) => {
+      this.iqProgressFill.style.width  = pct + '%';
+      this.iqStatus.textContent        = `이미지 인식 중... ${pct}%`;
+    };
+
+    try {
+      const lang  = this.iqLangSelect ? this.iqLangSelect.value : 'kor+eng';
+      const count = await this.imageQuiz.processImage(this._iqFile, lang);
+
+      if (count === 0) {
+        this.iqProcessing.hidden = true;
+        alert('텍스트 라벨을 감지하지 못했습니다.\n라벨이 선명하게 인쇄된 해부도 이미지를 사용해주세요.');
+        return;
+      }
+
+      this.imageQuiz.render(this.iqImageWrapper);
+
+      this.iqProcessing.hidden  = false; // keep bar visible briefly
+      await new Promise(r => setTimeout(r, 200));
+
+      this.iqProcessing.hidden  = true;
+      this.iqQuizDisplay.hidden = false;
+      this._iqSyncUI();
+      this.iqQuizDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (err) {
+      console.error('[ImageQuiz] processing error:', err);
+      this.iqProcessing.hidden = true;
+      alert('처리 중 오류가 발생했습니다: ' + (err.message || err));
+    }
+  }
+
+  _iqRevealCurrent() {
+    if (!this.imageQuiz) return;
+    this.imageQuiz.revealCurrent();
+    this._iqSyncUI();
+  }
+
+  _iqMarkAnswer(correct) {
+    if (!this.imageQuiz) return;
+    this.imageQuiz.markAnswer(this.imageQuiz.currentIndex, correct);
+    this._iqSyncUI();
+    // Auto-advance after a short pause
+    setTimeout(() => {
+      if (this.imageQuiz && this.imageQuiz.goNext()) this._iqSyncUI();
+    }, 600);
+  }
+
+  _iqSyncUI() {
+    const iq = this.imageQuiz;
+    if (!iq) return;
+
+    const total = iq.totalLabels;
+    const idx   = iq.currentIndex;
+    const label = iq.getCurrentLabel();
+
+    this.iqQProgress.textContent    = `문제 ${idx + 1} / ${total}`;
+    this.iqScoreCorrect.textContent = `✓ ${iq.score.correct}`;
+    this.iqScoreWrong.textContent   = `✗ ${iq.score.wrong}`;
+
+    if (label && label.revealed) {
+      this.iqBeforeReveal.hidden  = true;
+      this.iqAfterReveal.hidden   = false;
+      this.iqRevealedText.textContent = label.text;
+      // Disable self-score buttons if already answered
+      const answered = label.answered !== null;
+      this.iqCorrectBtn.disabled = answered;
+      this.iqWrongBtn.disabled   = answered;
+    } else {
+      this.iqBeforeReveal.hidden = false;
+      this.iqAfterReveal.hidden  = true;
+    }
+
+    this.iqPrevBtn.disabled = idx === 0;
+    this.iqNextBtn.disabled = idx >= total - 1;
+  }
+
+  _iqNewImage() {
+    if (this.imageQuiz) { this.imageQuiz.destroy(); this.imageQuiz = null; }
+    this._iqFile = null;
+    this.iqStartBtn.disabled  = true;
+    this.iqQuizDisplay.hidden = true;
+    this.iqProcessing.hidden  = true;
+    this.iqImageWrapper.innerHTML = '';
+    const title = this.iqDropZone.querySelector('.drop-zone-title');
+    if (title) title.textContent = '해부도 이미지를 업로드하세요';
+    this.iqDropZone.classList.remove('file-selected', 'drag-over');
+    this.iqDropZone.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   // ─── Navigation helpers ──────────────────────────────────────────────────────

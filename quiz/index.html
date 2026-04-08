@@ -23,6 +23,26 @@
 
   <main class="container">
 
+    <!-- Mode Tabs -->
+    <div class="mode-tabs card">
+      <button id="tab-text" class="mode-tab mode-tab--active">
+        <span class="mode-tab-icon">📝</span>
+        <span class="mode-tab-body">
+          <span class="mode-tab-title">텍스트 퀴즈</span>
+          <span class="mode-tab-sub">PDF · 이미지 텍스트 → 객관식/빈칸</span>
+        </span>
+      </button>
+      <button id="tab-image" class="mode-tab">
+        <span class="mode-tab-icon">🖼️</span>
+        <span class="mode-tab-body">
+          <span class="mode-tab-title">이미지 부위 퀴즈</span>
+          <span class="mode-tab-sub">해부도 라벨 가리기 → 부위 맞추기</span>
+        </span>
+      </button>
+    </div>
+
+    <!-- ══════════ TEXT QUIZ MODE ══════════ -->
+
     <!-- Upload Section -->
     <section id="upload-section">
 
@@ -150,6 +170,109 @@
 
     </section>
 
+    <!-- ══════════ IMAGE QUIZ MODE ══════════ -->
+
+    <section id="image-quiz-section" hidden>
+
+      <!-- Upload -->
+      <div id="iq-drop-zone" class="iq-drop-zone" role="button" tabindex="0" aria-label="해부도 이미지 업로드">
+        <div class="drop-zone-inner">
+          <div class="upload-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+              <rect width="64" height="64" rx="16" fill="#fef3c7"/>
+              <rect x="14" y="18" width="36" height="28" rx="4" fill="#fde68a" stroke="#f59e0b" stroke-width="1.5"/>
+              <circle cx="22" cy="26" r="3" fill="#f59e0b"/>
+              <path d="M14 38l10-8 8 6 6-5 10 9" stroke="#f59e0b" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M26 12l6 6M26 12l-6 6M26 12v12" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <p class="drop-zone-title">해부도 이미지를 업로드하세요</p>
+          <p class="drop-zone-hint">지원 형식: JPG, PNG, WEBP — 라벨이 있는 해부도 이미지 권장</p>
+          <span class="drop-zone-btn iq-drop-btn">이미지 선택</span>
+        </div>
+        <input id="iq-file-input" type="file" accept="image/*" hidden />
+      </div>
+
+      <!-- Options -->
+      <div class="card iq-options-panel">
+        <div class="option-group">
+          <label for="iq-lang-select" class="option-label">OCR 언어</label>
+          <select id="iq-lang-select" class="option-select">
+            <option value="kor+eng">한국어 + 영어</option>
+            <option value="eng">영어</option>
+            <option value="kor">한국어</option>
+          </select>
+        </div>
+        <div class="generate-row">
+          <button id="iq-start-btn" class="btn iq-btn-start" disabled>
+            <span class="btn-icon">🔍</span> 라벨 감지 시작
+          </button>
+        </div>
+      </div>
+
+      <!-- Processing -->
+      <div id="iq-processing" class="card processing-card" hidden>
+        <div class="spinner"></div>
+        <p id="iq-status" class="status-text">이미지 분석 중...</p>
+        <div class="progress-bar">
+          <div id="iq-progress-fill" class="progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Quiz Display -->
+      <div id="iq-quiz-display" hidden>
+
+        <!-- Question header -->
+        <div class="card iq-question-header">
+          <div class="iq-q-top">
+            <span id="iq-q-progress" class="quiz-progress">문제 1 / ?</span>
+            <div class="iq-score-row">
+              <span id="iq-score-correct" class="iq-badge iq-badge--correct">✓ 0</span>
+              <span id="iq-score-wrong"   class="iq-badge iq-badge--wrong">✗ 0</span>
+            </div>
+          </div>
+          <p class="iq-question-text">🔍 하이라이트된 부위의 명칭은?</p>
+          <p class="iq-question-hint">박스를 클릭하거나 아래 버튼으로 정답을 확인하세요. 다른 박스는 가려져 있습니다.</p>
+        </div>
+
+        <!-- Anatomy image with label overlays -->
+        <div id="iq-image-wrapper" class="card iq-image-wrapper"></div>
+
+        <!-- Controls -->
+        <div class="card iq-controls">
+
+          <!-- Before reveal -->
+          <div id="iq-before-reveal" class="iq-reveal-row">
+            <button id="iq-reveal-btn" class="btn iq-btn-reveal">👁 정답 확인</button>
+            <span class="iq-reveal-hint">※ 정답을 확인하기 전에 먼저 생각해보세요!</span>
+          </div>
+
+          <!-- After reveal: self-score + answer display -->
+          <div id="iq-after-reveal" class="iq-after-reveal-row" hidden>
+            <div class="iq-revealed-answer" id="iq-revealed-answer-box">
+              <span class="iq-revealed-label">정답</span>
+              <span id="iq-revealed-text" class="iq-revealed-text"></span>
+            </div>
+            <div class="iq-self-score">
+              <p class="iq-self-score-label">맞췄나요?</p>
+              <button id="iq-correct-btn" class="btn iq-btn-correct">✓ 맞았어요</button>
+              <button id="iq-wrong-btn"   class="btn iq-btn-wrong">✗ 틀렸어요</button>
+            </div>
+          </div>
+
+          <!-- Navigation -->
+          <div class="iq-nav-row">
+            <button id="iq-prev-btn"      class="btn btn--outline" disabled>← 이전</button>
+            <button id="iq-next-btn"      class="btn btn--outline">다음 →</button>
+            <button id="iq-reset-btn"     class="btn btn--outline">🔄 처음부터</button>
+            <button id="iq-new-image-btn" class="btn btn--outline">📷 새 이미지</button>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
   </main>
 
   <!-- Footer -->
@@ -162,6 +285,7 @@
   <script src="js/image-processor.js"></script>
   <script src="js/quiz-generator.js"></script>
   <script src="js/quiz-renderer.js"></script>
+  <script src="js/image-quiz.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
