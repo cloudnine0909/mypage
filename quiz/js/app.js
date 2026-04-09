@@ -86,6 +86,12 @@ class App {
     this.iqResetBtn        = document.getElementById('iq-reset-btn');
     this.iqNewImageBtn     = document.getElementById('iq-new-image-btn');
 
+    // Reference image for text quiz
+    this.quizImageRef      = document.getElementById('quiz-image-ref');
+    this.quizRefImg        = document.getElementById('quiz-ref-img');
+    this.toggleImageRefBtn = document.getElementById('toggle-image-ref-btn');
+    this._refImgUrl        = null; // object URL to revoke on reset
+
     // Image quiz engine instance (created on first use)
     this.imageQuiz = null;
     this._iqFile   = null;
@@ -155,6 +161,43 @@ class App {
     this.iqNextBtn.addEventListener('click',     () => { this.imageQuiz.goNext();  this._iqSyncUI(); });
     this.iqResetBtn.addEventListener('click',    () => { this.imageQuiz.reset();   this._iqSyncUI(); });
     this.iqNewImageBtn.addEventListener('click', () => this._iqNewImage());
+
+    // ── Reference image toggle ──
+    if (this.toggleImageRefBtn) {
+      this.toggleImageRefBtn.addEventListener('click', () => {
+        const body = document.getElementById('quiz-image-ref-body');
+        const hidden = body.hidden;
+        body.hidden = !hidden;
+        this.toggleImageRefBtn.textContent = hidden ? '숨기기' : '보이기';
+      });
+    }
+
+    // ── Clipboard paste (Ctrl+V anywhere on the page) ──
+    document.addEventListener('paste', (e) => this._handlePaste(e));
+  }
+
+  /** Handle image paste from clipboard. */
+  _handlePaste(e) {
+    if (!e.clipboardData) return;
+    const items = Array.from(e.clipboardData.items);
+    const imgItem = items.find(item => item.type.startsWith('image/'));
+    if (!imgItem) return;
+
+    e.preventDefault();
+    const blob = imgItem.getAsFile();
+    if (!blob) return;
+
+    // Give the pasted image a filename
+    const ext  = imgItem.type.split('/')[1] || 'png';
+    const file = new File([blob], `clipboard-${Date.now()}.${ext}`, { type: imgItem.type });
+
+    if (this._mode === 'image') {
+      this._iqSetFile(file);
+      // Scroll to drop zone so user sees the file was accepted
+      this.iqDropZone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      this.setFile(file);
+    }
   }
 
   /** Helper: bind click + drag-and-drop to a drop zone element. */
@@ -297,6 +340,22 @@ class App {
 
       this.currentQuiz = quizData;
 
+      // ── Reference image: show original if source was an image ──
+      const isPDFSource = this.currentFile &&
+        (this.currentFile.type === 'application/pdf' || this.currentFile.name.toLowerCase().endsWith('.pdf'));
+      if (!isPDFSource && this.currentFile && this.quizImageRef && this.quizRefImg) {
+        if (this._refImgUrl) URL.revokeObjectURL(this._refImgUrl);
+        this._refImgUrl = URL.createObjectURL(this.currentFile);
+        this.quizRefImg.src = this._refImgUrl;
+        this.quizImageRef.hidden = false;
+        // Reset toggle button label
+        if (this.toggleImageRefBtn) this.toggleImageRefBtn.textContent = '숨기기';
+        const body = document.getElementById('quiz-image-ref-body');
+        if (body) body.hidden = false;
+      } else if (this.quizImageRef) {
+        this.quizImageRef.hidden = true;
+      }
+
       // ── Text preview (first 500 chars) ──
       if (this.textPreview) {
         const src = quizData.sourceText || this.extractedText;
@@ -431,13 +490,16 @@ class App {
         return;
       }
 
-      this.imageQuiz.render(this.iqImageWrapper);
-
-      this.iqProcessing.hidden  = false; // keep bar visible briefly
-      await new Promise(r => setTimeout(r, 200));
-
+      // Show quiz section FIRST so the image has real layout dimensions
       this.iqProcessing.hidden  = true;
       this.iqQuizDisplay.hidden = false;
+
+      // Render AFTER section is visible so img.offsetWidth is correct
+      this.imageQuiz.render(this.iqImageWrapper);
+
+      // One animation frame to let the browser paint and ResizeObserver fire
+      await new Promise(r => requestAnimationFrame(r));
+
       this._iqSyncUI();
       this.iqQuizDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -527,6 +589,11 @@ class App {
     this.extractedText = '';
     this.currentQuiz   = null;
     this.quizRenderer  = null;
+
+    // Clean up reference image
+    if (this._refImgUrl) { URL.revokeObjectURL(this._refImgUrl); this._refImgUrl = null; }
+    if (this.quizRefImg)  this.quizRefImg.src = '';
+    if (this.quizImageRef) this.quizImageRef.hidden = true;
 
     // Reset file input and drop zone label
     if (this.fileInput) this.fileInput.value = '';

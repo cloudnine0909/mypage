@@ -1281,6 +1281,36 @@ body {
 
 .iq-nav-row .btn { font-size: .85rem; padding: 9px 16px; }
 
+/* ── Reference image panel (text quiz) ── */
+.quiz-image-ref-card { padding: 16px 20px; }
+
+.quiz-image-ref-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.quiz-image-ref-header h4 {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.btn--sm { padding: 6px 14px; font-size: .8rem; }
+
+.quiz-ref-img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  display: block;
+  cursor: zoom-in;
+  transition: transform var(--transition);
+}
+
+.quiz-ref-img:hover { transform: scale(1.01); }
+
 /* ── Question Header (renderer-generated) ── */
 .question-header {
   display: flex;

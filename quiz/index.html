@@ -57,7 +57,7 @@
             </svg>
           </div>
           <p class="drop-zone-title">파일을 여기에 드래그하거나 클릭하여 업로드</p>
-          <p class="drop-zone-hint">지원 형식: PDF, JPG, PNG, WEBP, GIF</p>
+          <p class="drop-zone-hint">지원 형식: PDF, JPG, PNG, WEBP, GIF &nbsp;·&nbsp; Ctrl+V 붙여넣기 가능</p>
           <span class="drop-zone-btn">파일 선택</span>
         </div>
         <input id="file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" hidden />
@@ -146,6 +146,19 @@
     <!-- Quiz Section -->
     <section id="quiz-section" hidden>
 
+      <!-- Reference image (shown when source was an image) -->
+      <div id="quiz-image-ref" hidden>
+        <div class="card quiz-image-ref-card">
+          <div class="quiz-image-ref-header">
+            <h4>📎 참고 이미지</h4>
+            <button id="toggle-image-ref-btn" class="btn btn--outline btn--sm">숨기기</button>
+          </div>
+          <div id="quiz-image-ref-body">
+            <img id="quiz-ref-img" class="quiz-ref-img" alt="참고 이미지">
+          </div>
+        </div>
+      </div>
+
       <div id="quiz-header" class="quiz-header card">
         <h2>퀴즈</h2>
         <span id="quiz-progress" class="quiz-progress"></span>
@@ -187,7 +200,7 @@
             </svg>
           </div>
           <p class="drop-zone-title">해부도 이미지를 업로드하세요</p>
-          <p class="drop-zone-hint">지원 형식: JPG, PNG, WEBP — 라벨이 있는 해부도 이미지 권장</p>
+          <p class="drop-zone-hint">지원 형식: JPG, PNG, WEBP — 라벨이 있는 해부도 이미지 권장 &nbsp;·&nbsp; Ctrl+V 붙여넣기 가능</p>
           <span class="drop-zone-btn iq-drop-btn">이미지 선택</span>
         </div>
         <input id="iq-file-input" type="file" accept="image/*" hidden />
